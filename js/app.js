@@ -26,7 +26,7 @@ function addUserMessage(message) {
     `;
     chatMessages.appendChild(messageElement);
     scrollToBottom();
-    
+
     // Actualizar historial de mensajes
     messageHistory.push({ role: "user", content: message });
 }
@@ -47,7 +47,7 @@ function addBotMessage(message) {
     `;
     chatMessages.appendChild(messageElement);
     scrollToBottom();
-    
+
     // Actualizar historial de mensajes
     messageHistory.push({ role: "assistant", content: message });
 }
@@ -76,33 +76,30 @@ function toggleLoading(show) {
 async function getAIResponse(userMessage) {
     try {
         toggleLoading(true);
-        
-        // Aquí debes reemplazar la URL con la de tu API de IA preferida
-        // Este es un ejemplo genérico que puedes adaptar según la API que uses
-        const response = await fetch('https://api.ejemplo.com/v1/chat/completions', {
+
+        // URL de la API
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta2/models/gemini-2.0-flash:generateText?key=AIzaSyDlkAqCPEiGIpBAcJBlk-UKqR2kIi0rb1A', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer TU_API_KEY' // Reemplaza con tu API key
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: "gpt-3.5-turbo", // Reemplaza con el modelo que quieras usar
-                messages: messageHistory,
-                max_tokens: 150,
+                prompt: {
+                    text: userMessage
+                },
+                maxOutputTokens: 150,
                 temperature: 0.7
             })
         });
-        
+
         if (!response.ok) {
             throw new Error(`Error en la API: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
-        // La estructura de la respuesta dependerá de la API que uses
-        // Este es un ejemplo para OpenAI
-        const aiMessage = data.choices[0].message.content;
-        
+
+        // Extraer mensaje del bot
+        const aiMessage = data.candidates[0]?.output || "No se recibió respuesta de la IA.";
         return aiMessage;
     } catch (error) {
         console.error("Error al obtener respuesta de la IA:", error);
@@ -119,51 +116,18 @@ async function sendMessage() {
         addUserMessage(message);
         userInput.value = '';
         userInput.focus();
-        
+
         // Obtener respuesta de la IA
         const aiResponse = await getAIResponse(message);
         addBotMessage(aiResponse);
     }
 }
 
-// Función para manejar el envío de mensajes con una API de fallback
-// Esta función se usa si la API principal falla o para pruebas
-async function sendMessageWithFallback() {
-    const message = userInput.value.trim();
-    if (message) {
-        addUserMessage(message);
-        userInput.value = '';
-        userInput.focus();
-        
-        toggleLoading(true);
-        
-        // Simular retraso de red
-        setTimeout(() => {
-            toggleLoading(false);
-            
-            // Respuesta de fallback simple basada en palabras clave
-            let response = "Lo siento, no entiendo completamente. ¿Puedes proporcionar más detalles?";
-            
-            if (message.toLowerCase().includes("hola") || message.toLowerCase().includes("saludos")) {
-                response = "¡Hola! ¿Cómo puedo ayudarte hoy?";
-            } else if (message.toLowerCase().includes("gracias")) {
-                response = "¡De nada! Estoy aquí para ayudar.";
-            } else if (message.toLowerCase().includes("ayuda")) {
-                response = "Puedo responder preguntas, proporcionar información o simplemente charlar. ¿Qué necesitas?";
-            } else if (message.toLowerCase().includes("adiós") || message.toLowerCase().includes("hasta luego")) {
-                response = "¡Hasta luego! Vuelve cuando necesites ayuda.";
-            }
-            
-            addBotMessage(response);
-        }, 1000);
-    }
-}
-
 // Eventos de click y tecla Enter
-sendButton.addEventListener('click', sendMessageWithFallback); // Cambia a sendMessage cuando tengas tu API configurada
+sendButton.addEventListener('click', sendMessage);
 userInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
-        sendMessageWithFallback(); // Cambia a sendMessage cuando tengas tu API configurada
+        sendMessage();
     }
 });
 
